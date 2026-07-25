@@ -6,7 +6,7 @@ TOML will be used for all SMFL examples in this README, but SMFL can read from a
 
 SMFL is not intended to be used as a standalone language, but instead as a supplement to Java. By itself, it only has basic arithmetic and flow abilities and no mechanism for input or output. It is instead designed to be used as snippets employed by a larger program that can be modified *without* recompilation, allowing for quick iteration or even on-the-fly code generation.
 
-Most importantly, this README is more of a concept layout than an actual description of SMFL's current functionality. As of `v0.6.0` on July 24th, 2026, the code has many bugs and is still incomplete, although it does have some basic functionality. Additionally, SMFL is largely just a project to push my coding skills to their limits and prove to myself (and the computer science department at my college) that I am ready to move on to more advance topics.
+Most importantly, this README is more of a concept layout than an actual description of SMFL's current functionality. As of `v0.6.1` on July 24th, 2026, the code has many bugs and is still incomplete, although it does have some basic functionality. Additionally, SMFL is largely just a project to push my coding skills to their limits and prove to myself (and the computer science department at my college) that I am ready to move on to more advance topics.
 
 ## SMFL Objects
 
@@ -38,7 +38,7 @@ Text strings do what their name implies: they store text. The only real differen
 
 #### Formatted Strings
 
-Formatted strings are a variation on text strings that allow for the insertion of references to data elsewhere in the file. If any section of a string is enclosed with unescaped curly braces, the section within will be treated as a separate string of any type. Its value will be converted back into a string and inserted into the original string.
+Formatted strings, or fstrings, are a variation on text strings that allow for the insertion of references to data elsewhere in the file. If any section of a string is enclosed with unescaped curly braces, the section within will be treated as a separate string of any type. Its value will be converted back into a string and inserted into the original string.
 
 ```toml
 [data.ex2]
@@ -222,7 +222,7 @@ Lambda structures can also be passed directly into function call structures in p
 
 ### Core Functions
 
-SMFL has eight core functions. These functions can be referenced directly with a `$` and their name. They cannot be mutated with the `@` prefix. Even any data or function is given a name that matches a core function's name, the core function will override all references. These core functions fall into three main categories: transmutation, flow control, and data structure manipulation.
+SMFL has seven core functions. These functions can be referenced directly with a `$` and their name. They cannot be mutated with the `@` prefix. Even any data or function is given a name that matches a core function's name, the core function will override all references. These core functions fall into three main categories: transmutation, flow control, and data structure manipulation.
 
 #### Link
 
@@ -245,14 +245,6 @@ Function<?, ?> link(Consumer<?> target, Function<?, ?> func) {
 > **param** `func`: The function to create a linked version of.
 > 
 > **return**: A linked version of `func` that updates `target` every time it is called.
-
-#### To String
-
-To string, referenced with `$tostr`, returns the value of any object as a string.
-
-> **param** `obj`: An object.
-> 
-> **return**: The string value of `obj`.
 
 #### If
 
@@ -377,4 +369,4 @@ The compiler also enables the fetching of data and running of functions from SMF
 
 ---
 
-> #### Last updated July 24th, 2026 for `v0.6.0`
+> #### Last updated July 24th, 2026 for `v0.6.1`

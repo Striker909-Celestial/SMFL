@@ -19,15 +19,15 @@ public class ScriptString implements ScriptObject<Object> {
 
     private enum Type {
         PLAINTEXT,
-        FTEXT,
+        FSTRING,
         REFERENCE,
         MUT_REFERENCE,
         OPERATIONAL,
         ERROR
     }
 
-    private final Pattern INSERT_PATTERN = Pattern.compile("(?:^|[^\\\\])\\{(.*[^\\\\])}");
-    private final Pattern PARENTHETICAL_PATTERN = Pattern.compile("(?:^|[^\\\\])\\((.*[^\\\\])\\)");
+    private final Pattern INSERT_PATTERN = Pattern.compile("(?:^|[^\\\\])\\{((?:[^{}]*?[^\\\\])??)}");
+    private final Pattern PARENTHETICAL_PATTERN = Pattern.compile("(?:^|[^\\\\])\\(((?:[^()]*?[^\\\\])??)\\)");
     private final Pattern REFERENCE_PATTERN = Pattern.compile("(?:^|[^\\\\])(\\$\\S+)");
     private final Pattern MUT_PATTERN = Pattern.compile("(?:^|[^\\\\])(@\\S+)");
     private final Pattern ESCAPE_PATTERN = Pattern.compile("\\\\([$@{}+\\-*/%=!<>&|])");
@@ -59,7 +59,7 @@ public class ScriptString implements ScriptObject<Object> {
     private Type detectType() {
         if (insertMatcher.find()) {
             insertMatcher.reset();
-            return Type.FTEXT;
+            return Type.FSTRING;
         }
         long rCount = referenceMatcher.results().count();
         long mCount = mutMatcher.results().count();
@@ -83,16 +83,16 @@ public class ScriptString implements ScriptObject<Object> {
     }
 
     private Supplier<String> buildFTextSupplier() {
-        List<MatchResult> inserts = this.insertMatcher.results().toList();
-        ArrayList<Supplier<Object>> strings = new ArrayList<>();
-        if (inserts.getFirst().start() != 0) { strings.add(new ScriptString(str().substring(0, inserts.getFirst().start()), context).supplier()); }
-        for (MatchResult insert : inserts) {
-            strings.add(new ScriptString(insert.group(1), context).supplier());
-            if (insert.end() != str().length()) { strings.add(new ScriptString(str().substring(insert.end()), context).supplier()); }
-        }
+        if (!insertMatcher.find()) { return () -> str(); }
+        String insert = this.insertMatcher.group(1);
+        int insertIndex = this.insertMatcher.start(1);
+        List<ScriptString> strings = new ArrayList<>();
+        if (insertIndex > 1) { strings.add(new ScriptString(str().substring(0, insertIndex - 1), context)); }
+        strings.add(new ScriptString(insert, context));
+        if (insertIndex + insert.length() + 1 < str().length()) { strings.add(new ScriptString(str().substring(insertIndex + insert.length() + 1), context)); }
         return () -> {
             StringBuilder builder = new StringBuilder();
-            for (Supplier<Object> string : strings) { builder.append(string.get()); }
+            for (ScriptString string : strings) { builder.append(string.get()); }
             String output = builder.toString();
             return ESCAPE_PATTERN.matcher(output).replaceAll(m -> m.group(1));
         };
@@ -168,11 +168,11 @@ public class ScriptString implements ScriptObject<Object> {
                 boolean found = this.mutMatcher.find();
                 yield this.context.apply(this.mutMatcher.group(1));
             }
-            case FTEXT -> buildFTextSupplier();
+            case FSTRING -> buildFTextSupplier();
             case OPERATIONAL -> buildOperationalSupplier();
             default -> () -> ESCAPE_PATTERN.matcher(strSupplier.get()).replaceAll(m -> m.group(1));
         };
-        this.isText = type == Type.PLAINTEXT || type == Type.FTEXT;
+        this.isText = type == Type.PLAINTEXT || type == Type.FSTRING;
     }
     public Object get() { return supplier.get(); }
 

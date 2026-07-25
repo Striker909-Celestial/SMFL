@@ -20,35 +20,8 @@ public class Core {
     /// Runs the given [ScriptFunction] with the given [com.striker.datascript.objects.ScriptArray] of arguments.
     public static <T extends ScriptObject<?>> T run(ScriptFunction<T> func, ScriptArray args) { return func.apply(args); }
 
-    /// Transforms a [ScriptFunction] by overriding its defaults with the given args.
-    /// If any args are omitted, the corresponding original defaults will be preserved.
-    // public static <T extends ScriptObject<?>> ScriptFunction<?> lambda(ScriptFunction<T> func, ScriptStructure args) { return func.updateDefaults(args); }
-
     /// Returns a [ScriptFunction] that sends the output of the given [ScriptFunction] to the given [Consumer].
     public static <T extends ScriptObject<?>> ScriptFunction<?> link(MutableScriptObject target, ScriptFunction<T> func) { return func.link(target); }
-
-    /// Attempts to cast the given value to the given type, returns null if the cast fails.
-    // public static ScriptObject<?> cast(ScriptString type, ScriptObject<?> value) {
-    //     if (!(type.get() instanceof String)) { return null; }
-    //     try {
-    //         return switch (((String) type.get()).toLowerCase()) {
-    //             case "int" -> new ScriptNumber(Integer.parseInt(value.get().toString()));
-    //             case "float", "num", "number" -> new ScriptNumber(Double.parseDouble(value.get().toString()));
-    //             case "str", "string" -> new ScriptString(value.get().toString(), s -> null);
-    //             case "bool", "boolean" -> new ScriptBoolean((boolean) value.get());
-    //             default -> null;
-    //         };
-    //     } catch (Exception e) {
-    //         return null;
-    //     }
-    // }
-
-    /// Creates a reference to the string value of a given ScriptObject.
-    public static ScriptString tostr(ScriptObject<?> obj) {
-        ScriptString str = new ScriptString("");
-        str.setSupplier(() -> obj.get().toString());
-        return str;
-    }
 
     /// Checks if the given condition is true.
     /// If it is, the then [ScriptFunction] will be run with its default parameters and the output returned.
@@ -59,17 +32,6 @@ public class Core {
         if (result instanceof ScriptFunction<?> res) { return run(res); }
         return result;
     }
-
-    /// Uses the matcher to check for the first key in the cases that matches the given value.
-    /// Once the matching key is found, runs with default parameters and returns the output of the corresponding [ScriptFunction].
-    /// If no keys match, the default [ScriptFunction] is run with its default parameters instead.
-    // public static ScriptObject<?> _switch(ScriptObject<?> value, ScriptFunction<ScriptBoolean> matcher, ScriptStructure cases, ScriptObject<?> _default) {
-    //     ScriptArray matches = cases.matches(value, matcher);
-    //     ScriptObject<?> result = _default;
-    //     if (matches.size() > 0) { result = matches.get(0); }
-    //     if (result instanceof ScriptFunction<?> func) { return run(func); }
-    //     return result;
-    // }
 
     /// Runs a while loop, each loop running the condition [ScriptFunction] and then running the func if the condition is true.
     /// Adds the output of the func each loop to an array, which is returned once the loop finishes.
@@ -167,27 +129,11 @@ public class Core {
     );
 
     public static final Map<String, ScriptFunction<?>> CORE = Map.ofEntries(
-            // Map.entry("lambda", new ScriptFunction<ScriptFunction<?>>(
-            //         args -> lambda(
-            //                 ScriptObject.assertType(args.get("func"), ScriptFunction.DUMMY),
-            //                 ScriptObject.assertType(args.get("args"), ScriptStructure.EMPTY)),
-            //         new ScriptStructure(Map.of("func", ScriptFunction.DUMMY, "args", ScriptStructure.EMPTY))
-            // )),
             Map.entry("link", new ScriptFunction<ScriptFunction<?>>(
                     args -> link(
                             ScriptObject.assertType(args.get("target"), MutableScriptObject.DUMMY),
                             ScriptObject.assertType(args.get("func"), ScriptFunction.DUMMY)),
                     new ScriptStructure(Map.of("target", MutableScriptObject.DUMMY, "func", ScriptFunction.DUMMY))
-            )),
-            // Map.entry("cast", new ScriptFunction<ScriptObject<?>>(
-            //         args -> cast(
-            //                 ScriptObject.assertType(args.get("type"), ScriptString.EMPTY),
-            //                 args.get("value")),
-            //         Map.of("type", new , "value", "")
-            // )),
-            Map.entry("tostr", new ScriptFunction<>(
-                    args -> tostr(args.get("obj")),
-                    new ScriptStructure(Map.of("obj", ScriptObject.DUMMY))
             )),
             Map.entry("if", new ScriptFunction<ScriptObject<?>>(
                     args -> _if(
@@ -195,14 +141,6 @@ public class Core {
                             args.get("then"), args.get("else")),
                     new ScriptStructure(Map.of("condition", ScriptBoolean.TRUE, "then", ScriptObject.DUMMY, "else", ScriptObject.DUMMY))
             )),
-            // Map.entry("switch", new ScriptFunction<ScriptObject<?>>(
-            //         args -> _switch(
-            //                 args.get("value"),
-            //                 ScriptObject.assertType(args.get("matcher"), ScriptFunction.DUMMY_BOOLEAN),
-            //                 ScriptObject.assertType(args.get("cases"), ScriptStructure.EMPTY),
-            //                 args.get("default")),
-            //         new ScriptStructure(Map.of("value", ScriptString.EMPTY, "matcher", HASH_MATCHER, "cases", ScriptStructure.EMPTY, "default", ScriptFunction.DUMMY))
-            // )),
             Map.entry("while", new ScriptFunction<>(
                     args -> _while(
                             ScriptObject.assertType(args.get("condition"), ScriptFunction.DUMMY_BOOLEAN),
