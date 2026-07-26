@@ -1,10 +1,11 @@
-[add]
+[func1]
 a = 0
-b = 0
-lambda.return = "$a + $b"
+b = 1
+#_ = { run.func = "$set", run.args = { target = "@a", value = "$b" } }
+print = { run.func = "$import.java.print", run.args = { msg = "{$a} + {$b} = {$a + $b}" } }
+lambda.return = "$print"
 
 [data]
-a = 4
-b = 2
-out = { run.func = "$add", run.args = { a = "$a", b = "$b" } }
-print = { run.func = "$import.java.print", run.args = { msg = "$out" } }
+_ = {run.func = "$func1", args = { a = 4, b = 7 } }
+
+print = { run.func = "$import.java.print", run.args = { msg = "test" } }

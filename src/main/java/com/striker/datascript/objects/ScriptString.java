@@ -82,8 +82,8 @@ public class ScriptString implements ScriptObject<Object> {
         return Type.ERROR;
     }
 
-    private Supplier<String> buildFTextSupplier() {
-        if (!insertMatcher.find()) { return () -> str(); }
+    private Supplier<?> buildFStringSupplier() {
+        if (!insertMatcher.find()) { return this::str; }
         String insert = this.insertMatcher.group(1);
         int insertIndex = this.insertMatcher.start(1);
         List<ScriptString> strings = new ArrayList<>();
@@ -94,7 +94,8 @@ public class ScriptString implements ScriptObject<Object> {
             StringBuilder builder = new StringBuilder();
             for (ScriptString string : strings) { builder.append(string.get()); }
             String output = builder.toString();
-            return ESCAPE_PATTERN.matcher(output).replaceAll(m -> m.group(1));
+            ScriptString s = new ScriptString(output, context);
+            return s.get();
         };
     }
 
@@ -168,11 +169,11 @@ public class ScriptString implements ScriptObject<Object> {
                 boolean found = this.mutMatcher.find();
                 yield this.context.apply(this.mutMatcher.group(1));
             }
-            case FSTRING -> buildFTextSupplier();
+            case FSTRING -> buildFStringSupplier();
             case OPERATIONAL -> buildOperationalSupplier();
             default -> () -> ESCAPE_PATTERN.matcher(strSupplier.get()).replaceAll(m -> m.group(1));
         };
-        this.isText = type == Type.PLAINTEXT || type == Type.FSTRING;
+        this.isText = type == Type.PLAINTEXT;
     }
     public Object get() { return supplier.get(); }
 

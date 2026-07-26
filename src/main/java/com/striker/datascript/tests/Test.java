@@ -23,5 +23,6 @@ public class Test {
                 .build();
 
         System.out.println(compiler);
+        compiler.run("data_test.func1");
     }
 }

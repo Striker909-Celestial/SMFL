@@ -2,10 +2,7 @@ package com.striker.datascript.objects;
 
 import com.striker.datascript.Core;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -64,11 +61,7 @@ public class ScriptStructure implements ScriptObject<Object> {
         // loops through all entries in the input data
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             ScriptObject<?> value = switch (entry.getValue()) {
-                case String s -> {
-                    ScriptString scriptString = new ScriptString(s, childContext);
-                    if (scriptString.isText()) { yield scriptString; }
-                    yield ScriptObject.of(scriptString.get());
-                }
+                case String s -> new ScriptString(s, childContext);
                 case Map m -> new ScriptStructure(path + "." + entry.getKey(), m, childContext); // maps become script structures with context
                 default -> ScriptObject.of(entry.getValue()); // all other objects become script objects with no context
             };
@@ -83,7 +76,9 @@ public class ScriptStructure implements ScriptObject<Object> {
             if (!(lambda instanceof ScriptStructure)) { throw new IllegalArgumentException("Lambda function definition must have a structure as its 'lambda' child"); }
             Function<Map<String, ScriptObject<?>>, ScriptObject<?>> function = (args) -> {
                 Map<String, Object> newMap = new HashMap<>(data);
-                newMap.putAll(args);
+                for (Map.Entry<String, ScriptObject<?>> entry : args.entrySet()) {
+                    if (!Objects.equals(entry.getKey(), "lambda") && newMap.containsKey(entry.getKey()) && entry.getValue() != null) { newMap.put(entry.getKey(), entry.getValue().get()); }
+                }
                 ScriptStructure newStructure = new ScriptStructure(this.path, newMap, context);
                 return newStructure.get("$lambda.return");
             };
@@ -107,11 +102,11 @@ public class ScriptStructure implements ScriptObject<Object> {
             // the supplier will now supply the output of the function call
             this.supplier = () -> {
                 ScriptObject<?> func = this.get("$run.func");
-                if (func instanceof ScriptStructure structure) {
-                    func = ScriptObject.of(structure.get());
-                }
-                if (!(func instanceof ScriptFunction<?>)) {
-                    throw new IllegalArgumentException("Function call structure must have a function as its 'func' child");
+                while (!(func instanceof ScriptFunction<?>)) {
+                    if (func == null || !(func.get() instanceof ScriptObject<?>)) {
+                        throw new IllegalArgumentException("Function call structure must have a function as its 'func' child");
+                    }
+                    func = ScriptObject.of(func.get());
                 }
                 ScriptFunction<?> scriptFunction = ScriptObject.assertType(func, ScriptFunction.DUMMY);
                 ScriptObject<?> argsObj = this.get("$run.args");
@@ -187,6 +182,10 @@ public class ScriptStructure implements ScriptObject<Object> {
                     // Allows for indexing into arrays such as "$data.array.0"
                     case ScriptArray array ->
                             (split.length > 1 && Pattern.matches("\\d+", split[1])) ? array.get(Integer.parseInt(split[1])) : array;
+                    // case ScriptString string -> {
+                    //     if (string.isText()) { yield string; }
+                    //     yield ScriptObject.of(string.get());
+                    // }
                     default -> obj;
                 };
             } else { // Write-only reference
@@ -211,7 +210,7 @@ public class ScriptStructure implements ScriptObject<Object> {
     public Supplier<Object> supplier() { return supplier::get; }
     public void setSupplier(Supplier<?> supplier) { this.supplier = supplier; }
     public Object get() { return supplier == null ? null : supplier.get(); }
-    
+
     public ScriptArray matches(ScriptObject<?> target, ScriptFunction<ScriptBoolean> matcher) {
         ArrayList<ScriptObject<?>> matches = new ArrayList<>();
         for (Map.Entry<String, ScriptObject<?>> entry : this.data().entrySet()) {
@@ -230,6 +229,10 @@ public class ScriptStructure implements ScriptObject<Object> {
         }
         return num;
     }
+
+    public boolean isFunctionCall() { return this.type == Type.FUNCTION_CALL; }
+    public boolean isLambda() { return this.type == Type.LAMBDA; }
+    public boolean isData() { return this.type == Type.DATA; }
 
     public String toString() { return String.valueOf(this.get()); }
 }

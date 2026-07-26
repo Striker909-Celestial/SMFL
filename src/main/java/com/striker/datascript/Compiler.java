@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.toml.TomlMapper;
 import com.striker.datascript.objects.ScriptFunction;
 import com.striker.datascript.objects.ScriptObject;
+import com.striker.datascript.objects.ScriptString;
 import com.striker.datascript.objects.ScriptStructure;
 
 import java.io.File;
@@ -64,11 +65,11 @@ public class Compiler {
         }
 
         public Builder addFile(File file) throws IOException {
-            String extension = file.getAbsolutePath().split("\\.")[1];
+            String extension = file.getName().split("\\.")[1];
             String fileText = "";
             try (FileReader reader = new FileReader(file)) { fileText = reader.readAllAsString(); }
             Map<String, Object> data = fileMappers.get(extension).apply(fileText);
-            files.put(file.getName(), data);
+            files.put(file.getName().split("\\.")[0], data);
             return this;
         }
 
@@ -111,20 +112,29 @@ public class Compiler {
             return files.get(path);
         } else {
             StringBuilder localRef = new StringBuilder();
+            String filename = split[0];
             if (prefix != '$' && prefix != '@') { localRef.append("$"); }
-            for (int i = 1; i < split.length; i++) {
-                localRef.append(".").append(split[i]);
+            else {
+                localRef.append(prefix);
+                filename = filename.substring(1);
             }
-            return files.get(split[0]).get(localRef.toString());
+            for (int i = 1; i < split.length; i++) {
+                localRef.append(split[i]).append(".");
+            }
+            return files.get(filename).get(localRef.substring(1, localRef.length() - 1));
         }
     }
 
     public ScriptObject<?> run(String path, Map<String, ScriptObject<?>> args) {
-        ScriptObject<?> obj = this.get(path);
-        if (obj instanceof ScriptFunction<?> func) {
-            return func.apply(new ScriptStructure(args));
+        ScriptObject<?> func = this.get(path);
+        while (!(func instanceof ScriptFunction<?>)) {
+            if (func == null || !(func.get() instanceof ScriptObject<?>)) {
+                return func;
+            }
+            func = ScriptObject.of(func.get());
         }
-        return obj;
+        var function = ScriptObject.assertType(func, ScriptFunction.DUMMY);
+        return function.apply(new ScriptStructure(args));
     }
 
     public ScriptObject<?> run(String path) {
